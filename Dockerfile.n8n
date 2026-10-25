@@ -1,0 +1,62 @@
+# ==============================================================================
+# Dockerfile.n8n: Data Artifex n8n Main Instance
+# ==============================================================================
+# Supports both n8n v3 (ARG N8N_VERSION=next or v3-nightly) and v2 (latest)
+# Includes:
+#   1. Official n8n application runtime
+#   2. Static musl build of QSV data-wrangling toolkit (/usr/local/bin/qsv)
+#   3. Pre-installed @dartfx/n8n-nodes-qsv community node package in /opt/n8n-custom-nodes
+# ==============================================================================
+
+ARG N8N_VERSION=next
+
+# --- Stage 1: Fetch static QSV binary for Alpine/musl runtime ---
+FROM alpine:3.21 AS qsv-fetcher
+ARG TARGETARCH
+RUN apk add --no-cache curl jq tar unzip ca-certificates
+
+WORKDIR /tmp
+RUN arch="${TARGETARCH:-$(apk --print-arch)}"; \
+    if [ "$arch" = "x86_64" ] || [ "$arch" = "amd64" ]; then \
+        qsv_arch="x86_64-unknown-linux-musl"; \
+    elif [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then \
+        qsv_arch="aarch64-unknown-linux-musl"; \
+    else \
+        qsv_arch="x86_64-unknown-linux-musl"; \
+    fi; \
+    echo "Fetching latest QSV release for ${qsv_arch}..."; \
+    version=$(curl -fsSL https://api.github.com/repos/dathere/qsv/releases/latest | jq -r '.tag_name'); \
+    echo "Targeting QSV version: ${version}"; \
+    curl -fsSL "https://github.com/dathere/qsv/releases/download/${version}/qsv-${version}-${qsv_arch}.zip" -o qsv.zip; \
+    unzip -q qsv.zip -d /tmp/qsv_extracted; \
+    install -m 0755 /tmp/qsv_extracted/qsv /usr/local/bin/qsv; \
+    /usr/local/bin/qsv --version
+
+# --- Stage 2: Pre-install @dartfx/n8n-nodes-qsv into dedicated extension path ---
+FROM node:20-alpine AS extension-builder
+WORKDIR /opt/n8n-custom-nodes
+RUN npm install -g pnpm && \
+    pnpm init && \
+    pnpm add @dartfx/n8n-nodes-qsv
+
+# --- Stage 3: Final Main n8n Image ---
+FROM n8nio/n8n:${N8N_VERSION}
+
+USER root
+
+# 1. Install QSV binary
+COPY --from=qsv-fetcher /usr/local/bin/qsv /usr/local/bin/qsv
+
+# 2. Copy pre-installed custom extensions to /opt/n8n-custom-nodes
+# Placing them here (instead of /home/node/.n8n/nodes) prevents volume mount masking
+COPY --from=extension-builder --chown=node:node /opt/n8n-custom-nodes /opt/n8n-custom-nodes
+
+# 3. Create persistent directories with correct permissions for node user
+RUN mkdir -p /data/shared && \
+    chown -R node:node /data/shared /opt/n8n-custom-nodes
+
+# Configure n8n to automatically load extensions from /opt/n8n-custom-nodes
+ENV N8N_CUSTOM_EXTENSIONS="/opt/n8n-custom-nodes"
+
+USER node
+WORKDIR /home/node

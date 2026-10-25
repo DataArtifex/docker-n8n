@@ -1,0 +1,91 @@
+# ==============================================================================
+# Dockerfile.runners: Data Artifex n8n Task Runner (Python + Node.js)
+# ==============================================================================
+# Based on dartfx/docker-base:latest (Debian, Python 3.14, QSV, dartfx-* toolkits)
+# Supervises both Python and Node.js code execution using n8n's task-runner-launcher.
+# Includes:
+#   - Python virtual environment (/opt/venv) with dartfx-* packages + pandas, etc.
+#   - Node.js runtime + pnpm + nvm
+#   - /usr/local/bin/task-runner-launcher sidecar daemon
+# ==============================================================================
+
+ARG N8N_VERSION=next
+
+# --- Stage 1: Extract n8n official runner launcher and runner scripts ---
+FROM n8nio/runners:${N8N_VERSION} AS n8n-runners-upstream
+
+# --- Stage 2: Build / Sync Extra Python Dependencies with uv ---
+FROM dartfx/docker-base:latest AS python-builder
+
+WORKDIR /app
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+COPY pyproject.toml ./
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/opt/venv/bin:$PATH"
+# Install extra dependencies into pre-existing /opt/venv from dartfx/docker-base
+RUN uv pip install .
+
+# --- Stage 3: Final Task Runner Runtime ---
+FROM dartfx/docker-base:latest
+
+WORKDIR /app
+
+USER root
+
+# 1. Install Node.js LTS, curl, git, procps and dependencies for Debian
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    procps \
+    gnupg \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
+    && apt-get update && apt-get install -y --no-install-recommends nodejs \
+    && corepack enable && corepack prepare pnpm@latest --activate \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Install nvm for system-wide / interactive switchability
+ENV NVM_DIR="/usr/local/nvm"
+ENV NODE_VERSION="20.18.0"
+RUN mkdir -p ${NVM_DIR} && \
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash && \
+    chmod -R 777 ${NVM_DIR}
+
+# 3. Copy updated Python virtual environment from builder stage
+COPY --from=python-builder --chown=appuser:appgroup /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# 4. Copy task runner launcher and runners from upstream n8nio/runners
+COPY --from=n8n-runners-upstream /usr/local/bin/task-runner-launcher /usr/local/bin/task-runner-launcher
+COPY --from=n8n-runners-upstream /opt/runners /opt/runners
+
+# 5. Point task-runner-python virtual environment to /opt/venv
+RUN rm -rf /opt/runners/task-runner-python/.venv && \
+    ln -s /opt/venv /opt/runners/task-runner-python/.venv
+
+# 6. Install extra Node packages declared in package.json using pnpm
+COPY package.json /opt/runners/task-runner-javascript/package.extra.json
+RUN cd /opt/runners/task-runner-javascript && \
+    pnpm add $(node -e "const pkg=require('./package.extra.json'); console.log(Object.keys(pkg.dependencies||{}).join(' '))") && \
+    rm -f package.extra.json
+
+# 7. Copy custom task runners configuration
+COPY n8n-task-runners.json /etc/n8n-task-runners.json
+
+# 8. Setup permissions and shared data directory
+RUN mkdir -p /data/shared /home/appuser && \
+    chown -R appuser:appgroup /opt/runners /etc/n8n-task-runners.json /data/shared /home/appuser /app
+
+# Switch to non-root user
+USER appuser
+ENV HOME="/home/appuser"
+WORKDIR /home/appuser
+
+# Default launcher entrypoint
+ENTRYPOINT ["/usr/local/bin/task-runner-launcher"]

@@ -1,0 +1,10 @@
+{
+  "name": "dartfx-n8n-runner-extensions",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Additional Node.js packages for n8n JavaScript task runner",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "lodash": "^4.17.21"
+  }
+}
