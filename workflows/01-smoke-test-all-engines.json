@@ -1,0 +1,61 @@
+{
+  "id": "dartfx-demo-01-smoke-test",
+  "name": "01: Smoke Test - All Runtime Engines",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger-1",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "command": "qsv --version"
+      },
+      "id": "qsv-version-1",
+      "name": "QSV CLI (Execute Command)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [260, -120]
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import pandas as pd\nimport dartfx.utils\nimport dartfx.qsv\nimport curl_cffi\n\ndf = pd.DataFrame({\n    \"city\": [\"Toronto\", \"Berlin\", \"Tokyo\"],\n    \"population\": [2930000, 3645000, 13960000]\n})\n\nreturn [{\n    \"json\": {\n        \"status\": \"Python Task Runner OK\",\n        \"cities_count\": len(df),\n        \"dartfx_utils\": str(dartfx.utils),\n        \"dartfx_qsv\": str(dartfx.qsv),\n        \"curl_cffi\": curl_cffi.__version__\n    }\n}]"
+      },
+      "id": "python-runner-1",
+      "name": "Python Runner (dartfx + pandas)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 80]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const _ = require('lodash');\nconst data = [{ a: 1 }, { a: 2 }, { a: 3 }];\nconst sum = _.sumBy(data, 'a');\n\nreturn [{\n  json: {\n    status: \"JavaScript Task Runner OK\",\n    lodash_sum: sum\n  }\n}];"
+      },
+      "id": "js-runner-1",
+      "name": "JavaScript Runner (lodash)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 280]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          { "node": "QSV CLI (Execute Command)", "type": "main", "index": 0 },
+          { "node": "Python Runner (dartfx + pandas)", "type": "main", "index": 0 },
+          { "node": "JavaScript Runner (lodash)", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

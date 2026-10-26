@@ -32,6 +32,7 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - shared_data:/data/shared
+      - ./workflows:/opt/n8n-workflows:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:5678/healthz || exit 1"]
       interval: 15s

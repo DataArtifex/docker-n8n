@@ -138,6 +138,27 @@ Follow the onboarding steps to set up your owner account.
 
 ---
 
+## Pre-Configured Demo Workflows
+
+The repository includes curated demo workflows in the [`workflows/`](file:///Users/pascal/Library/CloudStorage/Dropbox/git-dartfx/docker-n8n/workflows) directory:
+
+| File | Workflow Name | Description |
+| :--- | :--- | :--- |
+| `01-smoke-test-all-engines.json` | **01: Smoke Test - All Runtime Engines** | Verifies QSV CLI, Python runner (`dartfx.*`, `pandas`, `curl_cffi`), and JS runner (`lodash`) in parallel |
+| `02-qsv-data-wrangling.json` | **02: QSV CLI - CSV Wrangling & Analytics** | Generates tabular data in `/data/shared`, calculates statistical profiles, and runs filters/sorts with QSV |
+| `03-python-dartfx-pipeline.json` | **03: Python Runner - DDI-Codebook Creation & Validation** | Creates, serializes to `/data/shared`, and validates a DDI-Codebook 2.6 document using `dartfx.ddi.ddicodebook` |
+
+### Automatic First-Boot Seeding
+When the `n8n` container boots for the first time, it automatically detects and imports all `.json` workflows located in `/opt/n8n-workflows` (bundled in the image and mounted from `./workflows`). They appear ready to run in your n8n workspace immediately upon visiting `http://localhost:5678`.
+
+### Manual / On-Demand Importing
+You can import newly added workflow files into the active n8n database at any time using the CLI:
+```bash
+docker compose exec n8n n8n import:workflow --separate --input=/opt/n8n-workflows
+```
+
+---
+
 ## Production Deployment (PostgreSQL 18)
 
 For production deployments, execute the stack using the production overlay [`docker-compose.prod.yml`](file:///Users/pascal/Library/CloudStorage/Dropbox/git-dartfx/docker-n8n/docker-compose.prod.yml), which replaces SQLite with a dedicated PostgreSQL 18 container.

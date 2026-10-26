@@ -1,0 +1,65 @@
+{
+  "id": "dartfx-demo-02-qsv-wrangling",
+  "name": "02: QSV CLI - CSV Wrangling & Analytics",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger-2",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "command": "mkdir -p /data/shared && cat << 'EOF' > /data/shared/employees.csv\nid,name,department,salary,join_date\n1,Alice Smith,Engineering,115000,2021-03-15\n2,Bob Jones,Design,85000,2022-06-01\n3,Charlie Brown,Engineering,125000,2020-01-10\n4,Diana Prince,Product,105000,2021-11-20\n5,Evan Wright,Design,92000,2023-02-14\n6,Fiona Gallagher,Engineering,130000,2019-08-01\nEOF\nqsv count /data/shared/employees.csv"
+      },
+      "id": "qsv-create-csv",
+      "name": "Create Sample CSV in /data/shared",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "command": "qsv stats /data/shared/employees.csv | qsv table"
+      },
+      "id": "qsv-stats-node",
+      "name": "Calculate Statistics with QSV",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [480, -100]
+    },
+    {
+      "parameters": {
+        "command": "qsv search -s department \"Engineering\" /data/shared/employees.csv | qsv sort -s salary -R | qsv table"
+      },
+      "id": "qsv-filter-sort-node",
+      "name": "Filter & Sort High-Earners",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [480, 100]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          { "node": "Create Sample CSV in /data/shared", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Create Sample CSV in /data/shared": {
+      "main": [
+        [
+          { "node": "Calculate Statistics with QSV", "type": "main", "index": 0 },
+          { "node": "Filter & Sort High-Earners", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

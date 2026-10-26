@@ -53,10 +53,18 @@ COPY --from=extension-builder --chown=node:node /opt/n8n-custom-nodes /opt/n8n-c
 
 # 3. Create persistent directories with correct permissions for node user
 RUN mkdir -p /data/shared && \
-    chown -R node:node /data/shared /opt/n8n-custom-nodes
+    chmod 1777 /data/shared && \
+    chown -R node:node /opt/n8n-custom-nodes
+
+# 4. Bundle demo workflows and entrypoint with first-boot auto-seeding
+COPY --chown=node:node workflows /opt/n8n-workflows
+COPY docker-entrypoint-n8n.sh /usr/local/bin/docker-entrypoint-n8n.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint-n8n.sh
 
 # Configure n8n to automatically load extensions from /opt/n8n-custom-nodes
 ENV N8N_CUSTOM_EXTENSIONS="/opt/n8n-custom-nodes"
 
 USER node
 WORKDIR /home/node
+
+ENTRYPOINT ["tini", "--", "/usr/local/bin/docker-entrypoint-n8n.sh"]

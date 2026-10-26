@@ -1,0 +1,55 @@
+{
+  "id": "dartfx-demo-03-python-pipeline",
+  "name": "03: Python Runner - DDI-Codebook Creation & Validation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger-3",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import dartfx.ddi.ddicodebook as cb\n\nxml_content = \"\"\"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<codeBook xmlns=\"ddi:codebook:2_6\" version=\"2.6\" ID=\"DARTFX-SURVEY-2026\">\n  <docDscr>\n    <citation>\n      <titlStmt>\n        <titl>Documentation for Demo Socio-Economic Survey</titl>\n      </titlStmt>\n    </citation>\n  </docDscr>\n  <stdyDscr>\n    <citation>\n      <titlStmt>\n        <titl>Demo Socio-Economic Survey 2026</titl>\n        <IDNo agency=\"DataArtifex\">DARTFX-2026-V1</IDNo>\n      </titlStmt>\n      <rspStmt>\n        <AuthEnty>Data Artifex Research Unit</AuthEnty>\n      </rspStmt>\n      <prodStmt>\n        <producer>Data Artifex</producer>\n        <prodDate date=\"2026-10-25\">October 25, 2026</prodDate>\n      </prodStmt>\n    </citation>\n    <stdyInfo>\n      <abstract>A synthetic socio-economic sample survey used to test DDI-Codebook 2.6 metadata extraction, validation, and serialization.</abstract>\n    </stdyInfo>\n  </stdyDscr>\n  <dataDscr>\n    <var ID=\"V1\" name=\"age\">\n      <labl>Respondent Age</labl>\n      <varFormat type=\"numeric\"/>\n    </var>\n    <var ID=\"V2\" name=\"gender\">\n      <labl>Respondent Gender</labl>\n      <catgry>\n        <catValu>1</catValu>\n        <labl>Female</labl>\n      </catgry>\n      <catgry>\n        <catValu>2</catValu>\n        <labl>Male</labl>\n      </catgry>\n    </var>\n    <var ID=\"V3\" name=\"income\">\n      <labl>Annual Household Income (USD)</labl>\n      <varFormat type=\"numeric\"/>\n    </var>\n  </dataDscr>\n</codeBook>\"\"\"\n\n# 1. Parse and build Codebook model\ncodebook = cb.loadxmlstring(xml_content)\n\n# 2. Persist standardized DDI 2.6 XML to shared storage\noutput_path = \"/data/shared/demo_study_ddi.xml\"\ncb.savexml(codebook, output_path)\n\n# 3. Analyze and validate against DDI-Codebook profile\nprofile = cb.analyze_ddic_profile(codebook)\n\nreturn [{\n    \"json\": {\n        \"status\": \"success\",\n        \"study_id\": profile.study_id,\n        \"title\": profile.title,\n        \"standard\": profile.ddi_standard,\n        \"standard_version\": profile.standard_version,\n        \"total_variables\": profile.summary.total_variables,\n        \"quality_score\": profile.quality.overall_score,\n        \"quality_grade\": profile.quality.grade,\n        \"xml_output_file\": output_path\n    }\n}]"
+      },
+      "id": "ddi-pipeline-node",
+      "name": "Create & Validate DDI-Codebook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "command": "head -n 25 /data/shared/demo_study_ddi.xml"
+      },
+      "id": "inspect-ddi-xml",
+      "name": "Inspect Generated DDI XML",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [480, 0]
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          { "node": "Create & Validate DDI-Codebook", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Create & Validate DDI-Codebook": {
+      "main": [
+        [
+          { "node": "Inspect Generated DDI XML", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

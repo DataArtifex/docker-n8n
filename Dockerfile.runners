@@ -87,7 +87,8 @@ COPY n8n-task-runners.json /etc/n8n-task-runners.json
 
 # 8. Setup permissions and shared data directory
 RUN mkdir -p /data/shared /home/appuser && \
-    chown -R appuser:appgroup /opt/runners /etc/n8n-task-runners.json /data/shared /home/appuser /app /opt/venv
+    chmod 1777 /data/shared && \
+    chown -R appuser:appgroup /opt/runners /etc/n8n-task-runners.json /home/appuser /app /opt/venv
 
 # Switch to non-root user
 USER appuser
