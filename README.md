@@ -264,17 +264,17 @@ Just like Python dependencies are configured in [`pyproject.toml`](file:///Users
 ### Automated Local Verification
 A verification script is included to test system utilities, binary execution, and Python package imports across both containers:
 ```bash
-./verify_stack.sh
+./verify_images.sh
 ```
 
 ### Publishing to Container Registry (Docker Hub)
 To build and publish multi-platform (`linux/amd64`, `linux/arm64`) images to Docker Hub:
 ```bash
-./publish_image.sh --namespace dartfx --version next
+./publish_images.sh --namespace dartfx --version next
 ```
 For n8n v2 stable:
 ```bash
-./publish_image.sh --namespace dartfx --version latest
+./publish_images.sh --namespace dartfx --version latest
 ```
 
 ---

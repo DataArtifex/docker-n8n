@@ -16,7 +16,7 @@ usage() {
   echo "  -t, --tag <tag>          Additional custom image tag to push"
   echo "  -r, --registry <url>     Target container registry (default: $DEFAULT_REGISTRY)"
   echo "  -p, --platform <plat>    Target platform (default: $DEFAULT_PLATFORM)"
-  echo "  -s, --skip-verification  Skip running verify_stack.sh before pushing"
+  echo "  -s, --skip-verification  Skip running verify_images.sh before pushing"
   echo "  -f, --rebuild, --force   Force a clean rebuild with --no-cache"
   echo "  -h, --help               Show this help message"
   exit "${1:-1}"
@@ -92,11 +92,13 @@ if [ "$SKIP_VERIFICATION" = false ]; then
   docker build "${BUILD_ARGS[@]}" -f Dockerfile.runners -t "${RUNNER_LOCAL}" .
 
   # 2. Run verification script
-  echo "=== Step 2: Running verify_stack.sh ==="
-  if [ -f "./verify_stack.sh" ]; then
+  echo "=== Step 2: Running verify_images.sh ==="
+  if [ -f "./verify_images.sh" ]; then
+    ./verify_images.sh
+  elif [ -f "./verify_stack.sh" ]; then
     ./verify_stack.sh
   else
-    echo "Warning: verify_stack.sh not found. Skipping verification."
+    echo "Warning: verify_images.sh not found. Skipping verification."
   fi
   echo ""
 else
