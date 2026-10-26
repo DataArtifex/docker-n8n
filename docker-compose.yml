@@ -48,6 +48,7 @@ services:
     image: dartfx/n8n-runners:${N8N_VERSION:-next}
     container_name: n8n-task-runner
     restart: unless-stopped
+    command: ["javascript", "python"]
     environment:
       - N8N_RUNNERS_MODE=external
       - N8N_RUNNERS_AUTH_TOKEN=${N8N_RUNNERS_AUTH_TOKEN}

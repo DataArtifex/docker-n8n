@@ -9,12 +9,15 @@
         "--disable-proto=delete",
         "/opt/runners/task-runner-javascript/dist/start.js"
       ],
-      "health-check-server-port": 5681,
+      "health-check-server-port": "5681",
       "allowed-env": [
         "PATH",
         "GENERIC_TIMEZONE",
         "NODE_OPTIONS",
+        "NODE_PATH",
         "N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT",
+        "N8N_RUNNERS_GRACEFUL_SHUTDOWN_TIMEOUT",
+        "N8N_RUNNERS_SHUTDOWN_FORCE_KILL_MARGIN",
         "N8N_RUNNERS_TASK_TIMEOUT",
         "N8N_RUNNERS_MAX_CONCURRENCY",
         "N8N_SENTRY_DSN",
@@ -32,16 +35,22 @@
     {
       "runner-type": "python",
       "workdir": "/home/appuser",
-      "command": "/opt/venv/bin/python",
+      "command": "/opt/runners/task-runner-python/.venv/bin/python",
       "args": [
-        "/opt/runners/task-runner-python/dist/start.py"
+        "-I",
+        "-B",
+        "-X",
+        "disable_remote_debug",
+        "-m",
+        "src.main"
       ],
-      "health-check-server-port": 5682,
+      "health-check-server-port": "5682",
       "allowed-env": [
         "PATH",
         "GENERIC_TIMEZONE",
-        "PYTHONPATH",
+        "N8N_RUNNERS_LAUNCHER_LOG_LEVEL",
         "N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT",
+        "N8N_RUNNERS_GRACEFUL_SHUTDOWN_TIMEOUT",
         "N8N_RUNNERS_TASK_TIMEOUT",
         "N8N_RUNNERS_MAX_CONCURRENCY",
         "N8N_SENTRY_DSN",
@@ -51,10 +60,8 @@
         "HOME"
       ],
       "env-overrides": {
-        "PYTHONPATH": "/opt/runners/task-runner-python:/opt/venv/lib/python3.14/site-packages",
-        "N8N_RUNNERS_EXTERNAL_ALLOW": "*",
         "N8N_RUNNERS_STDLIB_ALLOW": "*",
-        "N8N_RUNNERS_ALLOW_TRANSITIVE_IMPORTS": "true",
+        "N8N_RUNNERS_EXTERNAL_ALLOW": "*",
         "N8N_RUNNERS_HEALTH_CHECK_SERVER_HOST": "0.0.0.0"
       }
     }

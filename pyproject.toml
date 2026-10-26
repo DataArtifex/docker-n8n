@@ -22,6 +22,10 @@ dependencies = [
     "httpx>=0.27.0",
     "pypdf>=4.0.0",
     "beautifulsoup4>=4.12.0",
+    # n8n Python task runner dependencies
+    "websockets>=15.0.1",
+    "urllib3>=2.2.0",
+    "sentry-sdk>=2.0.0",
 ]
 
 [tool.hatch.metadata]

@@ -37,16 +37,18 @@ WORKDIR /app
 
 USER root
 
-# 1. Install Node.js LTS, curl, git, procps and dependencies for Debian
+# 1. Install Node.js LTS, curl, git, procps, tini and dependencies for Debian
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
     procps \
     gnupg \
+    tini \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
     && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
     && apt-get update && apt-get install -y --no-install-recommends nodejs \
+    && ln -sf /usr/bin/node /usr/local/bin/node \
     && corepack enable && corepack prepare pnpm@latest --activate \
     && rm -rf /var/lib/apt/lists/*
 
@@ -65,8 +67,13 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY --from=n8n-runners-upstream /usr/local/bin/task-runner-launcher /usr/local/bin/task-runner-launcher
 COPY --from=n8n-runners-upstream /opt/runners /opt/runners
 
-# 5. Point task-runner-python virtual environment to /opt/venv
-RUN rm -rf /opt/runners/task-runner-python/.venv && \
+# 5. Copy n8n python task-runner source into site-packages and symlink .venv to /opt/venv
+RUN if [ -d /opt/runners/task-runner-python/build/lib/src ]; then \
+        cp -r /opt/runners/task-runner-python/build/lib/src /opt/venv/lib/python3.14/site-packages/src; \
+    else \
+        cp -r /opt/runners/task-runner-python/.venv/lib/python*/site-packages/src /opt/venv/lib/python3.14/site-packages/src; \
+    fi && \
+    rm -rf /opt/runners/task-runner-python/.venv && \
     ln -s /opt/venv /opt/runners/task-runner-python/.venv
 
 # 6. Install extra Node packages declared in package.json using pnpm
@@ -80,12 +87,13 @@ COPY n8n-task-runners.json /etc/n8n-task-runners.json
 
 # 8. Setup permissions and shared data directory
 RUN mkdir -p /data/shared /home/appuser && \
-    chown -R appuser:appgroup /opt/runners /etc/n8n-task-runners.json /data/shared /home/appuser /app
+    chown -R appuser:appgroup /opt/runners /etc/n8n-task-runners.json /data/shared /home/appuser /app /opt/venv
 
 # Switch to non-root user
 USER appuser
 ENV HOME="/home/appuser"
 WORKDIR /home/appuser
 
-# Default launcher entrypoint
-ENTRYPOINT ["/usr/local/bin/task-runner-launcher"]
+# Default launcher entrypoint with runner targets
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/task-runner-launcher"]
+CMD ["javascript", "python"]

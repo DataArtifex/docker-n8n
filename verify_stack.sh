@@ -20,7 +20,7 @@ echo -n "Checking QSV binary in n8n container... "
 docker run --rm "${N8N_IMAGE}" qsv --version >/dev/null && echo "OK" || { echo "FAILED"; exit 1; }
 
 echo -n "Checking @dartfx/n8n-nodes-qsv extension package directory... "
-docker run --rm "${N8N_IMAGE}" ls -la /opt/n8n-custom-nodes/node_modules/@dartfx/n8n-nodes-qsv >/dev/null 2>&1 && echo "OK" || { echo "FAILED"; exit 1; }
+docker run --rm --entrypoint /bin/sh "${N8N_IMAGE}" -c "test -e /opt/n8n-custom-nodes/node_modules/@dartfx/n8n-nodes-qsv" >/dev/null 2>&1 && echo "OK" || { echo "FAILED"; exit 1; }
 
 # ------------------------------------------------------------------------------
 # 2. Task Runner Container Verification
